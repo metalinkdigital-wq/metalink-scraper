@@ -51,12 +51,29 @@ app.post("/scrape", auth, async (req, res) => {
     await page.setViewport({ width: 1280, height: 800 });
 
     await page.goto(url, {
-      waitUntil: "networkidle2",
-      timeout: 25000,
+      waitUntil: "networkidle0",
+      timeout: 30000,
     });
 
-    // Wait for dynamic content
-    await new Promise((r) => setTimeout(r, 2000));
+    // Scroll down to trigger lazy-loaded content
+    await page.evaluate(async () => {
+      await new Promise((resolve) => {
+        let total = 0;
+        const distance = 300;
+        const timer = setInterval(() => {
+          window.scrollBy(0, distance);
+          total += distance;
+          if (total >= document.body.scrollHeight || total > 5000) {
+            clearInterval(timer);
+            window.scrollTo(0, 0);
+            resolve();
+          }
+        }, 100);
+      });
+    });
+
+    // Wait for dynamic content after scroll
+    await new Promise((r) => setTimeout(r, 3000));
 
     const html = await page.content();
     const finalUrl = page.url();
